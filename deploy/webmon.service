@@ -8,7 +8,7 @@ User=www-data
 Group=www-data
 WorkingDirectory=/var/www/webmon
 EnvironmentFile=/var/www/webmon/.env
-ExecStart=/var/www/webmon/venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 1
+ExecStart=/var/www/webmon/venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8001 --workers 1
 Restart=always
 RestartSec=5
 

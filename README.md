@@ -25,7 +25,7 @@ The first successful check stores a baseline and does not alert. Later checks al
 ```bash
 sudo mkdir -p /var/www/webmon
 sudo chown "$USER":www-data /var/www/webmon
-git clone <repo-url> /var/www/webmon
+git clone git@github.com:MaxHuiskes/webmon.git /var/www/webmon
 cd /var/www/webmon
 python3 -m venv venv
 source venv/bin/activate
@@ -51,4 +51,4 @@ sudo certbot --nginx -d monitor.yourdomain.com
 sudo ufw allow 'Nginx Full'
 ```
 
-Replace `monitor.yourdomain.com` in the Nginx file or `Caddyfile` before reloading the proxy. Uvicorn stays on `127.0.0.1:8000`.
+Replace `monitor.yourdomain.com` in the Nginx file or `Caddyfile` before reloading the proxy. Uvicorn stays on `127.0.0.1:8001`.
