@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Personal Web Monitor</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen p-4 sm:p-8 font-sans">
+<div class="max-w-5xl mx-auto space-y-8">
+  <div class="flex justify-between items-center border-b border-slate-800 pb-4">
+    <h1 class="text-2xl font-bold tracking-tight text-white">Target Monitor Dashboard</h1>
+    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-950 text-emerald-400 border border-emerald-800">Engine Active</span>
+  </div>
+
+  <div class="bg-slate-800/60 p-6 rounded-xl border border-slate-700/80 shadow-md">
+    <div class="flex justify-between items-center mb-4">
+      <h2 id="formTitle" class="text-lg font-semibold text-slate-200">New Target Monitor</h2>
+      <button type="button" id="cancelEdit" class="hidden text-xs text-slate-400 hover:text-white">Cancel edit</button>
+    </div>
+    <form id="monitorForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <label class="block text-xs font-medium uppercase text-slate-400 mb-1" for="name">Target Name</label>
+        <input type="text" id="name" required maxlength="200" placeholder="e.g. GPU In Stock" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none">
+      </div>
+      <div>
+        <label class="block text-xs font-medium uppercase text-slate-400 mb-1" for="url">Target URL</label>
+        <input type="url" id="url" required placeholder="https://example.com/product" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none">
+      </div>
+      <div>
+        <label class="block text-xs font-medium uppercase text-slate-400 mb-1" for="css_selector">CSS Selector (Optional)</label>
+        <input type="text" id="css_selector" maxlength="500" placeholder=".price-tag, #stock-status" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none">
+      </div>
+      <div>
+        <label class="block text-xs font-medium uppercase text-slate-400 mb-1" for="match_type">Trigger Condition</label>
+        <select id="match_type" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none">
+          <option value="text_diff">Full Page Text Diff</option>
+          <option value="selector_diff">Selector Content Diff</option>
+          <option value="keyword_present">Keyword Appears</option>
+          <option value="keyword_missing">Keyword Disappears</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs font-medium uppercase text-slate-400 mb-1" for="keyword">Keyword (If Applicable)</label>
+        <input type="text" id="keyword" maxlength="500" placeholder="e.g. In Stock" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none">
+      </div>
+      <div>
+        <label class="block text-xs font-medium uppercase text-slate-400 mb-1" for="interval">Polling Interval (Minutes)</label>
+        <input type="number" id="interval" value="15" min="1" max="10080" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none">
+      </div>
+      <p id="formError" class="md:col-span-2 hidden text-sm text-rose-400"></p>
+      <div class="md:col-span-2 pt-2">
+        <button id="submitBtn" type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 py-2.5 rounded-lg text-sm font-semibold transition">Add Monitor</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="bg-slate-800/60 rounded-xl border border-slate-700/80 overflow-hidden shadow-md">
+    <div class="p-4 border-b border-slate-700 flex justify-between items-center">
+      <h2 class="text-lg font-semibold text-slate-200">Monitored Targets</h2>
+      <button type="button" id="refreshBtn" class="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded transition">Refresh</button>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-sm text-slate-300">
+        <thead class="bg-slate-900/60 text-xs uppercase text-slate-400">
+          <tr>
+            <th class="p-3">Name</th>
+            <th class="p-3">Trigger Type</th>
+            <th class="p-3">Interval</th>
+            <th class="p-3">Last Checked</th>
+            <th class="p-3">Status</th>
+            <th class="p-3 text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="monitorRows" class="divide-y divide-slate-700/50"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="bg-slate-800/60 rounded-xl border border-slate-700/80 overflow-hidden shadow-md">
+    <div class="p-4 border-b border-slate-700">
+      <h2 class="text-lg font-semibold text-slate-200">Recent Changes</h2>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-sm text-slate-300">
+        <thead class="bg-slate-900/60 text-xs uppercase text-slate-400">
+          <tr>
+            <th class="p-3">When (UTC)</th>
+            <th class="p-3">Target</th>
+            <th class="p-3">Summary</th>
+            <th class="p-3">Alert</th>
+          </tr>
+        </thead>
+        <tbody id="logRows" class="divide-y divide-slate-700/50"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+<script>
+const LABELS = {
+  text_diff: "Full page diff",
+  selector_diff: "Selector diff",
+  keyword_present: "Keyword appears",
+  keyword_missing: "Keyword disappears"
+};
+const monitors = new Map();
+
+function esc(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function formatInterval(minutes) {
+  if (minutes % 1440 === 0) return `${minutes / 1440}d`;
+  if (minutes % 60 === 0) return `${minutes / 60}h`;
+  return `${minutes}m`;
+}
+
+async function readError(res) {
+  try {
+    const body = await res.json();
+    if (typeof body.detail === "string") return body.detail;
+    if (Array.isArray(body.detail)) return body.detail.map((item) => item.msg).join(", ");
+  } catch (_) {}
+  return res.statusText || "Request failed";
+}
+
+function setFormError(message) {
+  const el = document.getElementById("formError");
+  el.textContent = message || "";
+  el.classList.toggle("hidden", !message);
+}
+
+function resetForm() {
+  document.getElementById("monitorForm").reset();
+  document.getElementById("interval").value = "15";
+  document.getElementById("monitorForm").dataset.id = "";
+  document.getElementById("formTitle").textContent = "New Target Monitor";
+  document.getElementById("submitBtn").textContent = "Add Monitor";
+  document.getElementById("cancelEdit").classList.add("hidden");
+  setFormError("");
+}
+
+function fillForm(monitor) {
+  document.getElementById("name").value = monitor.name;
+  document.getElementById("url").value = monitor.url;
+  document.getElementById("css_selector").value = monitor.css_selector || "";
+  document.getElementById("match_type").value = monitor.match_type;
+  document.getElementById("keyword").value = monitor.keyword || "";
+  document.getElementById("interval").value = monitor.interval_minutes;
+  document.getElementById("monitorForm").dataset.id = String(monitor.id);
+  document.getElementById("formTitle").textContent = "Edit Target Monitor";
+  document.getElementById("submitBtn").textContent = "Save Changes";
+  document.getElementById("cancelEdit").classList.remove("hidden");
+  document.getElementById("name").focus();
+}
+
+async function fetchMonitors() {
+  const res = await fetch("/api/monitors");
+  if (!res.ok) {
+    setFormError(await readError(res));
+    return;
+  }
+  const data = await res.json();
+  monitors.clear();
+  const tbody = document.getElementById("monitorRows");
+  tbody.replaceChildren();
+  if (data.length === 0) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = '<td class="p-3 text-slate-500" colspan="6">No monitors yet.</td>';
+    tbody.appendChild(tr);
+  }
+  data.forEach((monitor) => {
+    monitors.set(monitor.id, monitor);
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td class="p-3">
+        <div class="font-medium text-white">${esc(monitor.name)}</div>
+        <a href="${esc(monitor.url)}" target="_blank" rel="noopener" class="text-xs text-indigo-400 truncate block max-w-xs">${esc(monitor.url)}</a>
+      </td>
+      <td class="p-3 font-mono text-xs">${esc(LABELS[monitor.match_type] || monitor.match_type)}${monitor.keyword ? `<div class="text-slate-500">${esc(monitor.keyword)}</div>` : ""}</td>
+      <td class="p-3">${esc(formatInterval(monitor.interval_minutes))}</td>
+      <td class="p-3 text-xs text-slate-400">${monitor.last_checked_at ? esc(monitor.last_checked_at) : "Pending"}</td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-xs ${monitor.is_active ? "bg-emerald-950 text-emerald-400 border border-emerald-800" : "bg-rose-950 text-rose-400 border border-rose-800"}">
+          ${monitor.is_active ? "Active" : "Paused"}
+        </span>
+      </td>
+      <td class="p-3 text-right space-x-2 whitespace-nowrap">
+        <button type="button" data-action="check" data-id="${monitor.id}" class="text-xs text-indigo-400 hover:underline">Check</button>
+        <button type="button" data-action="edit" data-id="${monitor.id}" class="text-xs text-slate-300 hover:underline">Edit</button>
+        <button type="button" data-action="toggle" data-id="${monitor.id}" class="text-xs ${monitor.is_active ? "text-amber-400" : "text-emerald-400"} hover:underline">${monitor.is_active ? "Pause" : "Resume"}</button>
+        <button type="button" data-action="delete" data-id="${monitor.id}" class="text-xs text-rose-400 hover:underline">Delete</button>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+async function fetchLogs() {
+  const res = await fetch("/api/logs");
+  if (!res.ok) return;
+  const data = await res.json();
+  const tbody = document.getElementById("logRows");
+  tbody.replaceChildren();
+  if (data.length === 0) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = '<td class="p-3 text-slate-500" colspan="4">No changes recorded.</td>';
+    tbody.appendChild(tr);
+    return;
+  }
+  data.forEach((log) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td class="p-3 text-xs text-slate-400">${esc(log.detected_at)}</td>
+      <td class="p-3">${esc(log.monitor_name)}</td>
+      <td class="p-3">${esc(log.summary)}</td>
+      <td class="p-3 text-xs">${esc(log.notified_status)}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+document.getElementById("monitorRows").addEventListener("click", async (event) => {
+  const button = event.target.closest("button[data-action]");
+  if (!button) return;
+  const id = Number(button.dataset.id);
+  const action = button.dataset.action;
+  if (action === "edit") {
+    const monitor = monitors.get(id);
+    if (monitor) fillForm(monitor);
+    return;
+  }
+  if (action === "delete" && !confirm("Delete this monitor?")) return;
+  const method = action === "delete" ? "DELETE" : "POST";
+  const path = action === "delete" ? `/api/monitors/${id}` : `/api/monitors/${id}/${action}`;
+  const res = await fetch(path, { method });
+  if (!res.ok) {
+    setFormError(await readError(res));
+    return;
+  }
+  await Promise.all([fetchMonitors(), fetchLogs()]);
+});
+
+document.getElementById("monitorForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  setFormError("");
+  const editingId = event.currentTarget.dataset.id;
+  const payload = {
+    name: document.getElementById("name").value.trim(),
+    url: document.getElementById("url").value.trim(),
+    css_selector: document.getElementById("css_selector").value.trim() || null,
+    match_type: document.getElementById("match_type").value,
+    keyword: document.getElementById("keyword").value.trim() || null,
+    interval_minutes: parseInt(document.getElementById("interval").value, 10)
+  };
+  const res = await fetch(editingId ? `/api/monitors/${editingId}` : "/api/monitors", {
+    method: editingId ? "PUT" : "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) {
+    setFormError(await readError(res));
+    return;
+  }
+  resetForm();
+  await Promise.all([fetchMonitors(), fetchLogs()]);
+});
+
+document.getElementById("cancelEdit").addEventListener("click", resetForm);
+document.getElementById("refreshBtn").addEventListener("click", () => Promise.all([fetchMonitors(), fetchLogs()]));
+Promise.all([fetchMonitors(), fetchLogs()]);
+</script>
+</body>
+</html>
